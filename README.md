@@ -19,11 +19,11 @@ See [CLAUDE.md][] for the repo structure and developer workflow.
 - [Pulumi][] installed and configured
 - [uv][] installed (Python toolchain)
 - AWS credentials configured (e.g. via [aws-cli][])
-- An SSH key pair at `~/.ssh/aws` / `~/.ssh/aws.pub`:
+- An SSH key pair at `~/.ssh/aws-roland` / `~/.ssh/aws-roland.pub`:
 
 ```bash
 cd ~/.ssh
-ssh-keygen -t rsa -b 2048 -f aws
+ssh-keygen -t rsa -b 2048 -f aws-roland
 ```
 
 ## Usage
@@ -45,7 +45,7 @@ The response should be `Ollama is running`.
 ### SSH into the instance
 
 ```bash
-ssh -i ~/.ssh/aws ubuntu@$(pulumi stack output eipPublicIp)
+ssh -i ~/.ssh/aws-roland ubuntu@$(pulumi stack output eipPublicIp)
 ```
 
 ### Tear down
