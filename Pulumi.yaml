@@ -1,0 +1,7 @@
+name: ollama
+description: An AWS instance to run LLMs via ollama
+runtime:
+  name: python
+  options:
+    toolchain: uv
+    virtualenv: .venv
