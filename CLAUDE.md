@@ -63,7 +63,7 @@ The default (if not set) is `llama3.2:latest`. The value is a comma-separated li
 
 Edit `compute.py`. The current values are:
 
-- AMI: `ami-0da39a8bb51a828e3` (Ubuntu 22.04, us-east-1)
+- AMI: `ami-09d0c9a85bf1b9ea7` (Ubuntu 22.04, eu-west-1)
 - Instance type: `m5.2xlarge`
 
 ## Verifying Changes
