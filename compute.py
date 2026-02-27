@@ -6,6 +6,20 @@ import security
 
 _models_str = " ".join(config.models)
 
+# Look up the latest Deep Learning Base GPU AMI (Ubuntu 22.04) so Ollama's
+# install script auto-detects CUDA and enables GPU inference.
+_ami = aws.ec2.get_ami(
+    most_recent=True,
+    owners=["amazon"],
+    filters=[
+        aws.ec2.GetAmiFilterArgs(
+            name="name",
+            values=["Deep Learning Base OSS Nvidia Driver GPU AMI (Ubuntu 22.04) *"],
+        ),
+        aws.ec2.GetAmiFilterArgs(name="state", values=["available"]),
+    ],
+)
+
 user_data = f"""#!/bin/bash
   # Check if the volume is already mounted
   if mount | grep {config.volume_name}; then
@@ -31,9 +45,8 @@ user_data = f"""#!/bin/bash
   if pgrep ollama > /dev/null; then
     echo "Ollama service already running!"
   else
-    # Install the latest version of ollama
+    # Install ollama; detects CUDA from the DLAMI and enables GPU inference
     curl -fsSL https://ollama.com/install.sh | sh
-    apt install -y numactl
 
     # Create the directory for ollama models
     mkdir -p /mnt/{config.volume_name}/ollama-models
@@ -43,12 +56,6 @@ user_data = f"""#!/bin/bash
 
     # Set the directory and host for the service
     echo -e "\\n[Service]\\nEnvironment=\\"OLLAMA_MODELS=/mnt/{config.volume_name}/ollama-models\\"\\nEnvironment=\\"OLLAMA_HOST=0.0.0.0\\"\\n" >> /etc/systemd/system/ollama.service
-
-    # Override ExecStart to use numactl so ollama uses all NUMA nodes (m5.8xlarge
-    # has 2 NUMA nodes x 16 vCPUs; without this, the process binds to one node).
-    mkdir -p /etc/systemd/system/ollama.service.d/
-    printf '[Service]\\nExecStart=\\nExecStart=/usr/bin/numactl --interleave=all /usr/local/bin/ollama serve\\n' \\
-      > /etc/systemd/system/ollama.service.d/numa.conf
 
     # (Re)Start the ollama service
     systemctl daemon-reload
@@ -66,8 +73,8 @@ user_data = f"""#!/bin/bash
 
 # Create an EC2 Instance
 instance = aws.ec2.Instance("ollama-instance",
-    ami="ami-09d0c9a85bf1b9ea7",  # Ubuntu 22.04 LTS, eu-west-1
-    instance_type="m5.8xlarge",
+    ami=_ami.id,
+    instance_type="g5.2xlarge",
     key_name=security.key_pair.key_name,
     subnet_id=network.subnet.id,
     tags={"Name": "ollama-instance"},

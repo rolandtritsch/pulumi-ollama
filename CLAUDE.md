@@ -63,8 +63,8 @@ The default (if not set) is `llama3.2:latest`. The value is a comma-separated li
 
 Edit `compute.py`. The current values are:
 
-- AMI: `ami-09d0c9a85bf1b9ea7` (Ubuntu 22.04, eu-west-1)
-- Instance type: `m5.2xlarge`
+- AMI: dynamically resolved — latest Deep Learning Base OSS Nvidia Driver GPU AMI (Ubuntu 22.04) via `aws.ec2.get_ami`
+- Instance type: `g5.2xlarge` (NVIDIA A10G, 24 GB VRAM)
 
 ## Verifying Changes
 
