@@ -1,3 +1,8 @@
+.PHONY: bash
+bash: ## SSH into the instance
+	@EIP=$$(pulumi stack output eipPublicIp); \
+	ssh -i ~/.ssh/aws-roland ubuntu@$$EIP
+
 .PHONY: destroy
 destroy: ## Tear down the stack
 	pulumi destroy --yes
