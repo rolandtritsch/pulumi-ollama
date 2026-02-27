@@ -1,0 +1,2 @@
+config:
+  ollama:models: qwen3-coder-next:q4_K_M,codellama:34b
