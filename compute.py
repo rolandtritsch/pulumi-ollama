@@ -33,6 +33,7 @@ user_data = f"""#!/bin/bash
   else
     # Install the latest version of ollama
     curl -fsSL https://ollama.com/install.sh | sh
+    apt install -y numactl
 
     # Create the directory for ollama models
     mkdir -p /mnt/{config.volume_name}/ollama-models
@@ -42,6 +43,12 @@ user_data = f"""#!/bin/bash
 
     # Set the directory and host for the service
     echo -e "\\n[Service]\\nEnvironment=\\"OLLAMA_MODELS=/mnt/{config.volume_name}/ollama-models\\"\\nEnvironment=\\"OLLAMA_HOST=0.0.0.0\\"\\n" >> /etc/systemd/system/ollama.service
+
+    # Override ExecStart to use numactl so ollama uses all NUMA nodes (m5.8xlarge
+    # has 2 NUMA nodes x 16 vCPUs; without this, the process binds to one node).
+    mkdir -p /etc/systemd/system/ollama.service.d/
+    printf '[Service]\\nExecStart=\\nExecStart=/usr/bin/numactl --interleave=all /usr/local/bin/ollama serve\\n' \\
+      > /etc/systemd/system/ollama.service.d/numa.conf
 
     # (Re)Start the ollama service
     systemctl daemon-reload
