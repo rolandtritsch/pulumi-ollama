@@ -80,6 +80,9 @@ instance = aws.ec2.Instance("ollama-instance",
     tags={"Name": "ollama-instance"},
     user_data=user_data,
     vpc_security_group_ids=[security.security_group.id],
+    root_block_device=aws.ec2.InstanceRootBlockDeviceArgs(
+        volume_size=200,  # DLAMI pre-installed packages consume ~50 GB
+    ),
 )
 
 # Allocate an Elastic IP
