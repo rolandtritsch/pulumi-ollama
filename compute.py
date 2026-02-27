@@ -60,7 +60,7 @@ user_data = f"""#!/bin/bash
 # Create an EC2 Instance
 instance = aws.ec2.Instance("ollama-instance",
     ami="ami-09d0c9a85bf1b9ea7",  # Ubuntu 22.04 LTS, eu-west-1
-    instance_type="m5.2xlarge",
+    instance_type="m5.4xlarge",
     key_name=security.key_pair.key_name,
     subnet_id=network.subnet.id,
     tags={"Name": "ollama-instance"},
