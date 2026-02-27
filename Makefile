@@ -35,7 +35,7 @@ preview: ## Preview the stack
 tunnel: ## Open SSH tunnel to Ollama on localhost:11435
 	@EIP=$$(pulumi stack output eipPublicIp); \
 	echo "Tunneling localhost:11435 -> $$EIP:11434"; \
-	ssh -N -L 11435:localhost:11434 -i ~/.ssh/aws-roland ubuntu@$$EIP
+	ssh -N -o ServerAliveInterval=30 -o ServerAliveCountMax=6 -L 11435:localhost:11434 -i ~/.ssh/aws-roland ubuntu@$$EIP
 
 .PHONY: up
 up: ## Deploy the stack
