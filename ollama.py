@@ -1,7 +1,7 @@
 import pulumi
 
-import compute
-import storage
+from src import compute
+from src import storage
 
 pulumi.export("instanceId", compute.instance.id)
 pulumi.export("instancePublicIp", compute.instance.public_ip)

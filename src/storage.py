@@ -1,8 +1,8 @@
 import pulumi
 import pulumi_aws as aws
 
-import config
-import compute
+from . import config
+from . import compute
 
 # Create an EBS volume
 volume = aws.ebs.Volume("ollama-volume",

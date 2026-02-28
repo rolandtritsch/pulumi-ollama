@@ -1,7 +1,7 @@
 import pulumi_aws as aws
 
-import config
-import network
+from . import config
+from . import network
 
 # Create an AWS key pair
 key_pair = aws.ec2.KeyPair("ollama-keyPair",

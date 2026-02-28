@@ -1,8 +1,8 @@
 import pulumi_aws as aws
 
-import config
-import network
-import security
+from . import config
+from . import network
+from . import security
 
 _models_str = " ".join(config.models)
 

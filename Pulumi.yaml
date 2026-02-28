@@ -5,3 +5,4 @@ runtime:
   options:
     toolchain: uv
     virtualenv: .venv
+main: ollama.py
