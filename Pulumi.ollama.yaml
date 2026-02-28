@@ -1,3 +1,1 @@
-config:
-  ollama:models: qwen2.5-coder:32b,codellama:34b
-  aws:region: eu-west-1
+{}
