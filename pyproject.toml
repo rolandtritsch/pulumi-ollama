@@ -6,3 +6,6 @@ dependencies = [
     "pulumi>=3.0.0,<4.0.0",
     "pulumi-aws>=6.0.0,<7.0.0",
 ]
+
+[tool.setuptools]
+packages = ["src"]
