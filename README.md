@@ -26,6 +26,14 @@ cd ~/.ssh
 ssh-keygen -t rsa -b 2048 -f aws-roland
 ```
 
+## Setup
+
+Install the Python dependencies into the local virtual environment before running any Pulumi commands:
+
+```bash
+uv pip install -e .
+```
+
 ## Usage
 
 ### Deploy
