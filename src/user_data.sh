@@ -40,12 +40,22 @@ else
   usermod -aG ollama ubuntu
 
   echo "Set the directory and host for the service ..."
-  echo -e "\n[Service]\nEnvironment=\"OLLAMA_MODELS=/mnt/${volume_name}/ollama-models\"\nEnvironment=\"OLLAMA_HOST=0.0.0.0\"\n" >> /etc/systemd/system/ollama.service
+  mkdir -p /etc/systemd/system/ollama.service.d
+  cat > /etc/systemd/system/ollama.service.d/override.conf <<EOF
+[Service]
+Environment="OLLAMA_MODELS=/mnt/${volume_name}/ollama-models"
+Environment="OLLAMA_HOST=0.0.0.0"
+EOF
 
   echo "Enable and start the ollama service ..."
   systemctl daemon-reload
   systemctl enable ollama
   systemctl start ollama
+
+  echo "Waiting for ollama to be ready ..."
+  until curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; do
+    sleep 2
+  done
 fi
 
 echo "Pull the configured model(s) ..."
