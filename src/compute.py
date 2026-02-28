@@ -57,18 +57,23 @@ user_data = f"""#!/bin/bash
     # Set the directory and host for the service
     echo -e "\\n[Service]\\nEnvironment=\\"OLLAMA_MODELS=/mnt/{config.volume_name}/ollama-models\\"\\nEnvironment=\\"OLLAMA_HOST=0.0.0.0\\"\\n" >> /etc/systemd/system/ollama.service
 
-    # (Re)Start the ollama service
+    # Enable and start the ollama service
     systemctl daemon-reload
-    systemctl restart ollama
+    systemctl enable ollama
+    systemctl start ollama
   fi
 
   # Pull the configured model(s)
+  export HOME=/root
   for model in {_models_str}; do
     /usr/local/bin/ollama pull $model
   done
 
   # Refresh the package list
   sudo apt update && sudo apt upgrade -y
+
+  # Restart ollama service after system updates
+  systemctl restart ollama
 """
 
 # Create an EC2 Instance
