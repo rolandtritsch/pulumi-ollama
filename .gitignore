@@ -3,3 +3,4 @@
 *.pyc
 .pulumi/
 *.egg-info
+Pulumi.*.yaml

@@ -1,11 +1,12 @@
-OLLAMA_MODEL ?= qwen3-coder:30b
+SSH_KEY ?= ~/.ssh/ollama-key
+OLLAMA_MODEL ?= llama3.2:latest
 
-.PHONY: instance-bash
+.PHONY: bash
 bash: ## SSH into the instance
 	@EIP=$$(pulumi stack output eipPublicIp); \
-	ssh -i ~/.ssh/aws-roland ubuntu@$$EIP
+	ssh -i $(SSH_KEY) ubuntu@$$EIP
 
-.PHONY: stack-destroy
+.PHONY: destroy
 destroy: ## Tear down the stack
 	pulumi destroy --yes
 
@@ -17,37 +18,32 @@ help: ## List available targets
 instance-start: ## Start the EC2 instance
 	@ID=$$(pulumi stack output instanceId); \
 	echo "Starting $$ID ..."; \
-	AWS_PROFILE=roland aws ec2 start-instances --instance-ids $$ID --region eu-west-1
+	aws ec2 start-instances --instance-ids $$ID
 
 .PHONY: instance-stop
 instance-stop: ## Stop the EC2 instance
 	@ID=$$(pulumi stack output instanceId); \
 	echo "Stopping $$ID ..."; \
-	AWS_PROFILE=roland aws ec2 stop-instances --instance-ids $$ID --region eu-west-1
-
-.PHONY: ollama-codex
-ollama-codex: ## Start an ollama codex client
-	ollama launch codex --model $(OLLAMA_MODEL)
+	aws ec2 stop-instances --instance-ids $$ID
 
 .PHONY: ollama-list
 ollama-list: ## List the available ollama models
 	ollama list
 
 .PHONY: ollama-run
-ollama-run: ## List the available ollama models
+ollama-run: ## Run an ollama model interactively
 	ollama run $(OLLAMA_MODEL)
 
-.PHONY: stack-preview
+.PHONY: preview
 preview: ## Preview the stack
 	pulumi preview
 
-.PHONY: instance-tunnel
+.PHONY: tunnel
 tunnel: ## Open SSH tunnel to Ollama on localhost:11434
 	@EIP=$$(pulumi stack output eipPublicIp); \
-	echo "Note: Run 'sudo systemctl stop ollama' first"; \
 	echo "Tunneling localhost:11434 -> $$EIP:11434"; \
-	ssh -N -o ServerAliveInterval=30 -o ServerAliveCountMax=6 -L 11434:localhost:11434 -i ~/.ssh/aws-roland ubuntu@$$EIP
+	ssh -N -o ServerAliveInterval=30 -o ServerAliveCountMax=6 -L 11434:localhost:11434 -i $(SSH_KEY) ubuntu@$$EIP
 
-.PHONY: stack-up
+.PHONY: up
 up: ## Deploy the stack
 	pulumi up --yes

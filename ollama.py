@@ -8,5 +8,7 @@ pulumi.export("instanceId", compute.instance.id)
 pulumi.export("instancePublicIp", compute.instance.public_ip)
 pulumi.export("eipPublicIp", compute.eip.public_ip)
 pulumi.export("eipPublicDns", compute.eip.public_dns)
-pulumi.export("dnsRecord", dns.record.name)
 pulumi.export("volumeId", storage.volume.id)
+
+if dns.record is not None:
+    pulumi.export("dnsRecord", dns.record.name)
