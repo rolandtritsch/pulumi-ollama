@@ -21,7 +21,7 @@ def pulumi_optional(*args: str) -> str | None:
 
 def main() -> int:
     public_ip = pulumi("stack", "output", "eipPublicIp")
-    models_raw = pulumi_optional("config", "get", "models") or "llama3.2:latest"
+    models_raw = pulumi_optional("config", "get", "models") or "qwen2.5-coder:0.5b"
     expected = {model.strip() for model in models_raw.split(",")}
     endpoint = f"http://{public_ip}:11434/api/tags"
     deadline = time.monotonic() + 900

@@ -52,7 +52,7 @@ CIDRs; empty lists, IPv6, malformed networks, and `0.0.0.0/0` are rejected.
 Optional values and their defaults are:
 
 ```bash
-pulumi config set models "deepseek-r1:8b,llama3.1:latest"
+pulumi config set models "qwen2.5-coder:0.5b"
 pulumi config set instance_type g5.2xlarge
 pulumi config set root_volume_size 200
 pulumi config set model_volume_size 500

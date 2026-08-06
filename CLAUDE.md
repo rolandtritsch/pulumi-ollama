@@ -71,7 +71,7 @@ pulumi config set --path 'allowed_cidrs[0]' 203.0.113.10/32
 Model names remain a comma-separated Pulumi value:
 
 ```bash
-pulumi config set models "deepseek-r1:8b,llama3.1:latest"
+pulumi config set models "qwen2.5-coder:0.5b"
 ```
 
 The current AMI is resolved dynamically from the latest AWS Deep Learning Base

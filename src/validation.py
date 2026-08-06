@@ -34,7 +34,7 @@ def validate_allowed_cidrs(value: object) -> list[str]:
 
 
 def parse_models(value: str | None) -> list[str]:
-    raw_models = ("llama3.2:latest" if value is None else value).split(",")
+    raw_models = ("qwen2.5-coder:0.5b" if value is None else value).split(",")
     models = [model.strip() for model in raw_models]
     if not models or any(not model or not _MODEL_PATTERN.fullmatch(model) for model in models):
         raise ValueError("models must be a comma-separated list of valid Ollama model names")

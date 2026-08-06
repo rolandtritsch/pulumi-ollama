@@ -12,7 +12,7 @@ class UserDataTests(unittest.TestCase):
             volume_id="vol-0123456789abcdef0",
             volume_id_clean="vol0123456789abcdef0",
             volume_name="ollama-volume",
-            models="qwen3:8b llama3.2:latest",
+            models="qwen3:8b qwen2.5-coder:0.5b",
             cloudwatch_config=json.dumps({"metrics": {}}),
         )
         subprocess.run(["bash", "-n"], input=rendered, text=True, check=True)

@@ -29,8 +29,11 @@ class ValidationTests(unittest.TestCase):
                 validate_allowed_cidrs(value)
 
     def test_parses_models(self) -> None:
-        self.assertEqual(parse_models(None), ["llama3.2:latest"])
-        self.assertEqual(parse_models("qwen3:8b, llama3.2:latest"), ["qwen3:8b", "llama3.2:latest"])
+        self.assertEqual(parse_models(None), ["qwen2.5-coder:0.5b"])
+        self.assertEqual(
+            parse_models("qwen3:8b, qwen2.5-coder:0.5b"),
+            ["qwen3:8b", "qwen2.5-coder:0.5b"],
+        )
 
     def test_rejects_shell_unsafe_models(self) -> None:
         for value in ("", "model name", "model;reboot", "$(reboot)"):

@@ -1,5 +1,5 @@
 SSH_KEY ?= ~/.ssh/ollama-key
-OLLAMA_MODEL ?= llama3.2:latest
+OLLAMA_MODEL ?= qwen2.5-coder:0.5b
 
 .PHONY: bash
 bash: ## SSH into the instance
