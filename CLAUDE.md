@@ -1,130 +1,123 @@
 # Developer Guide
 
-This file covers the structure of the repo and how to make and verify changes. See [README.md][] for user-facing documentation.
+This guide describes repository structure and verification. See [README.md][]
+for deployment and operator usage.
 
-## Project Structure
+## Project structure
 
-```
+```text
 pulumi-ollama/
-├── Pulumi.yaml          # Pulumi project metadata (Python + uv)
-├── pyproject.toml       # Python dependencies (managed by uv)
-├── ollama.py            # Entry point; exports stack outputs
-├── Makefile             # Convenience targets: up, destroy, help
-├── src/
-│   ├── __init__.py
-│   ├── config.py        # Shared constants and Pulumi config values
-│   ├── network.py       # VPC, IGW, subnet, route table
-│   ├── security.py      # Key pair and security group
-│   ├── compute.py       # EC2 instance and Elastic IP
-│   ├── storage.py       # EBS volume and attachment
-│   ├── dns.py           # Optional Route53 DNS record
-│   └── user_data.sh     # EC2 bootstrap script (templated)
-└── .gitignore
+├── Pulumi.yaml          # Pulumi Python and uv project metadata
+├── pyproject.toml       # Python dependencies
+├── ollama.py            # Entry point and stack outputs
+├── Makefile             # Operator and verification commands
+├── scripts/verify.py    # End-to-end readiness check
+├── tests/               # Config and rendered-bootstrap tests
+└── src/
+    ├── config.py        # Pulumi configuration
+    ├── validation.py    # Pure configuration validation helpers
+    ├── network.py       # VPC, subnet, gateway, and route table
+    ├── security.py      # Key pair and allowlisted security group
+    ├── storage.py       # Encrypted model volume
+    ├── monitoring.py    # Log groups and least-privilege instance IAM
+    ├── compute.py       # EC2, attachment, EIP, and user-data rendering
+    ├── dashboard.py     # CloudWatch dashboard
+    ├── dns.py           # Optional Route53 record
+    └── user_data.sh     # Idempotent instance bootstrap
 ```
 
-### Dependency / Import Graph
+The resource dependency graph is:
 
+```text
+validation → config
+                ↓
+           network → security
+                ↓         ↓
+           storage   monitoring
+                └────┬────┘
+                     ↓
+                  compute → dns
+                     ↓
+                 dashboard
+                     ↓
+                  ollama.py
 ```
-config.py
-    ↓
-network.py  →  vpc, subnet
-    ↓
-security.py →  key_pair, security_group
-    ↓
-compute.py  →  instance, eip
-    ↓
-storage.py  →  volume
-dns.py      →  record (optional, only if dns_zone + dns_hostname are set)
-    ↓
-ollama.py   →  stack exports
+
+Keep implementation files under 400 lines where practical.
+
+## Making changes
+
+Edit the layer that owns the behavior:
+
+- Networking and routes: `src/network.py`
+- Inbound access and SSH key registration: `src/security.py`
+- EBS resource properties and mount behavior: `src/storage.py` and
+  `src/user_data.sh`
+- Instance, AMI, or bootstrap wiring: `src/compute.py`
+- Logs, instance IAM, metrics, or dashboard: `src/monitoring.py` and
+  `src/dashboard.py`
+- DNS: `src/dns.py`
+
+Deployment settings belong in Pulumi config. Do not add environment-variable or
+source-edit configuration for deployed infrastructure. Keep genuine internal
+invariants in code until operators need to configure them.
+
+`allowed_cidrs` is a required Pulumi list shared by SSH and Ollama:
+
+```bash
+pulumi config set --path 'allowed_cidrs[0]' 203.0.113.10/32
 ```
 
-## File Size Limit
-
-Keep each source file under 400 lines of code.
-
-## Making Changes
-
-### Adding or changing resources
-
-Each layer is isolated to its own module. Edit the relevant file:
-
-- Networking changes → `src/network.py`
-- Firewall / SSH key changes → `src/security.py`
-- Instance type, AMI, user-data → `src/compute.py`
-- EBS volume size or device → `src/storage.py` / `src/config.py`
-- DNS record → `src/dns.py`
-
-### Changing the models to pull
-
-Models are configured at the Pulumi stack level, not in code:
+Model names remain a comma-separated Pulumi value:
 
 ```bash
 pulumi config set models "deepseek-r1:8b,llama3.1:latest"
 ```
 
-The default (if not set) is `llama3.2:latest`. The value is a comma-separated list; `src/config.py` splits it and `src/compute.py` passes the list to the `user_data.sh` template.
+The current AMI is resolved dynamically from the latest AWS Deep Learning Base
+OSS NVIDIA Driver GPU AMI for Ubuntu 22.04. The instance type, volume sizes, and
+CloudWatch retention are Pulumi settings with documented defaults.
 
-### Changing the SSH key
+## Verification
 
-The path to the SSH public key is read from Pulumi config:
-
-```bash
-pulumi config set public_key_path ~/.ssh/your-key.pub
-```
-
-### Changing instance type or AMI
-
-Edit `src/compute.py`. The current values are:
-
-- AMI: dynamically resolved — latest Deep Learning Base OSS Nvidia Driver GPU AMI (Ubuntu 22.04) via `aws.ec2.get_ami`
-- Instance type: `g5.2xlarge` (NVIDIA A10G, 24 GB VRAM)
-
-### DNS (optional)
-
-If `dns_zone` and `dns_hostname` are set in Pulumi config, `src/dns.py` creates a Route53 A record pointing to the Elastic IP. If either is unset, no DNS resources are created.
-
-## Verifying Changes
-
-### Syntax check
+Run local tests and syntax checks:
 
 ```bash
-uv run python -c "import ollama"
+make test
+uv run python -m compileall -q ollama.py src scripts tests
+bash -n src/user_data.sh
 ```
 
-### Pulumi preview (no AWS changes)
+Run a Pulumi preview against configured AWS credentials:
 
 ```bash
-pulumi preview
+make preview
 ```
 
-Expected resources: VPC, IGW, subnet, route table, route table association, key pair, security group, EC2 instance, EIP, EBS volume, volume attachment. DNS record only if `dns_zone` and `dns_hostname` are configured.
+Expected resources include the network, key pair, allowlisted security group,
+encrypted EBS volumes, EC2 instance, EIP, least-privilege IAM profile, four log
+groups, and CloudWatch dashboard. DNS exists only when both DNS settings are
+configured.
 
-### Config test
-
-```bash
-pulumi config set models "deepseek-r1:8b,llama3.1:latest"
-pulumi preview
-```
-
-Verify the user-data section of the instance shows both models in the `for` loop.
-
-### End-to-end deploy
+For end-to-end verification:
 
 ```bash
 make up
-curl http://$(pulumi stack output eipPublicIp):11434
-# Expected: Ollama is running
+make verify
 ```
+
+From a client outside the configured allowlist, confirm TCP ports 22 and 11434
+are unreachable. In CloudWatch, confirm bootstrap, Ollama, system, and agent
+logs arrive and that `Ollama/Host` contains CPU, memory, disk, process, network,
+and NVIDIA GPU metrics.
 
 ## Dependencies
 
-Managed via `uv`. To add a package:
+Dependencies are managed with [uv][]:
 
 ```bash
 uv add <package>
 ```
 
-This updates `pyproject.toml` automatically.
-
 [README.md]: README.md
+[uv]: https://docs.astral.sh/uv/

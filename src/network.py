@@ -22,6 +22,8 @@ subnet = aws.ec2.Subnet("ollama-subnet",
     tags={"Name": "ollama-subnet"},
 )
 
+vpc_dns_resolver_cidr = "10.0.0.2/32"
+
 # Create a RouteTable
 route_table = aws.ec2.RouteTable("ollama-routeTable",
     vpc_id=vpc.id,

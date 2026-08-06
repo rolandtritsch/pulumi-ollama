@@ -1,133 +1,140 @@
 # pulumi-ollama
 
-A [Pulumi][] stack that provisions an AWS EC2 instance to run large language models via [Ollama][].
-
-The idea is to run models that are too large for a laptop — for example, `deepseek-r1:70b` requires ~45 GB of VRAM.
+A [Pulumi][] stack that provisions a single AWS GPU instance for running large
+language models with [Ollama][].
 
 The stack provisions:
 
-- A `g5.2xlarge` EC2 instance (NVIDIA A10G, 24 GB VRAM) running the Deep Learning Base GPU AMI (Ubuntu 22.04)
-- A 500 GB EBS volume for model storage
-- A public Elastic IP so the instance is reachable from anywhere
-- Ollama installed and started automatically on boot, with GPU inference enabled
-- One or more models pre-pulled, configurable via `pulumi config`
+- A configurable EC2 instance, defaulting to `g5.2xlarge` with an NVIDIA A10G
+- Encrypted root and model-storage EBS volumes
+- An Elastic IP restricted to explicitly configured IPv4 networks
+- Ollama installation, GPU inference, and configurable model downloads
+- CloudWatch logs, host metrics, NVIDIA GPU metrics, and a dashboard
 
-See [CLAUDE.md][] for the repo structure and developer workflow.
+This is a single-node service. Model storage is disposable and is rebuilt by
+downloading the configured models when necessary.
+
+> **Security:** Ollama is served over plain HTTP and does not authenticate
+> callers. The IP allowlist is the access boundary. Prompts and responses are
+> not encrypted in transit, so use this stack only where that limitation is
+> acceptable.
+
+See [CLAUDE.md][] for repository structure and development guidance.
 
 ## Prerequisites
 
 - [Pulumi][] installed and configured
-- [uv][] installed (Python toolchain)
-- AWS credentials configured (e.g. via [aws-cli][])
-- An SSH key pair (e.g. `~/.ssh/ollama-key` / `~/.ssh/ollama-key.pub`):
-
-```bash
-cd ~/.ssh
-ssh-keygen -t ed25519 -f ollama-key
-```
+- [uv][] installed
+- AWS credentials configured, for example with the [AWS CLI][aws-cli]
+- An SSH key pair such as `~/.ssh/ollama-key` and
+  `~/.ssh/ollama-key.pub`
 
 ## Setup
 
-Install Python dependencies into the local virtual environment:
-
 ```bash
 uv pip install -e .
-```
-
-Create a Pulumi stack (name it whatever you like, e.g. `dev`):
-
-```bash
 pulumi stack init dev
 ```
 
 ## Configuration
 
-Set the required and optional config values before deploying.
-
-### Required
+Set required deployment values through Pulumi config:
 
 ```bash
-# Path to your SSH public key
 pulumi config set public_key_path ~/.ssh/ollama-key.pub
-
-# AWS region to deploy into
 pulumi config set aws:region us-east-1
+pulumi config set --path 'allowed_cidrs[0]' 203.0.113.10/32
 ```
 
-### Optional
+The same allowlist controls SSH and Ollama. It must contain specific IPv4
+CIDRs; empty lists, IPv6, malformed networks, and `0.0.0.0/0` are rejected.
+
+Optional values and their defaults are:
 
 ```bash
-# Models to pre-pull (comma-separated); default: llama3.2:latest
 pulumi config set models "deepseek-r1:8b,llama3.1:latest"
+pulumi config set instance_type g5.2xlarge
+pulumi config set root_volume_size 200
+pulumi config set model_volume_size 500
+pulumi config set log_retention_days 30
+```
 
-# Route53 DNS zone and hostname (omit both to skip DNS record creation)
+DNS is created only when both optional values are present:
+
+```bash
 pulumi config set dns_zone "example.com."
 pulumi config set dns_hostname "ollama.example.com"
 ```
 
 ## Usage
 
-### Deploy
+Preview, deploy, and wait for Ollama and its configured models:
 
 ```bash
+make preview
 make up
+make verify
 ```
 
-### Check the instance is running
-
-```bash
-curl http://$(pulumi stack output eipPublicIp):11434
-```
-
-The response should be `Ollama is running`.
-
-### SSH into the instance
+SSH into the instance or open a local client tunnel:
 
 ```bash
 make bash SSH_KEY=~/.ssh/ollama-key
-```
-
-Or set `SSH_KEY` in your environment to avoid passing it every time:
-
-```bash
-export SSH_KEY=~/.ssh/ollama-key
-make bash
-```
-
-### Open a local tunnel
-
-Forward `localhost:11434` to the remote Ollama service:
-
-```bash
 make tunnel SSH_KEY=~/.ssh/ollama-key
 ```
 
-### Start / stop the instance
+The tunnel is a local client convenience; it does not add a security boundary
+while port 11434 remains accessible to the configured allowlist.
 
-To save costs when not in use:
+Follow centralized setup or service logs:
+
+```bash
+make logs-bootstrap
+make logs-ollama
+```
+
+The `cloudwatchDashboard` stack output contains the dashboard name. Logs are
+retained for `log_retention_days`. The stack deliberately creates no alarms or
+notification channels yet.
+
+Stop and start the GPU instance to control compute costs:
 
 ```bash
 make instance-stop
 make instance-start
 ```
 
-### Tear down
+Destroy the complete stack, including disposable model storage and monitoring
+resources:
 
 ```bash
 make destroy
 ```
 
+## Updating access
+
+Change list entries through Pulumi config and redeploy:
+
+```bash
+pulumi config set --path 'allowed_cidrs[0]' 198.51.100.25/32
+pulumi config set --path 'allowed_cidrs[1]' 203.0.113.0/28
+make up
+```
+
+Check your current public IPv4 address before removing the address from which
+you administer the instance.
+
 ## Troubleshooting
 
-- **Model pull fails on first boot** — SSH into the instance and pull manually:
-
-  ```bash
-  ollama pull deepseek-r1:8b
-  ```
-
-- **EBS volume attached to wrong device** — Run `lsblk` on the instance to find the correct device, then mount it manually.
-
-- **Setup logs** — The `user_data.sh` script writes to `/var/log/ollama-setup.log` on the instance.
+- Run `make logs-bootstrap` when initial setup or a model download fails.
+- Run `make logs-ollama` for service and inference failures.
+- The same logs remain available on the instance at
+  `/var/log/ollama-setup.log` and `/var/log/ollama/ollama.log`.
+- CloudWatch agent diagnostics are under
+  `/opt/aws/amazon-cloudwatch-agent/logs/` and in the
+  `CloudWatchAgentLogGroup` stack output.
+- Instance replacement safely recognizes an existing filesystem, but normal
+  recovery is to re-download all models from Pulumi configuration.
 
 [Pulumi]: https://www.pulumi.com
 [Ollama]: https://ollama.com

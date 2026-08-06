@@ -34,9 +34,23 @@ ollama-list: ## List the available ollama models
 ollama-run: ## Run an ollama model interactively
 	ollama run $(OLLAMA_MODEL)
 
+.PHONY: logs-bootstrap
+logs-bootstrap: ## Follow bootstrap logs in CloudWatch
+	@REGION=$$(pulumi config get aws:region); GROUP=$$(pulumi stack output BootstrapLogGroup); \
+	aws logs tail "$$GROUP" --follow --region "$$REGION"
+
+.PHONY: logs-ollama
+logs-ollama: ## Follow Ollama logs in CloudWatch
+	@REGION=$$(pulumi config get aws:region); GROUP=$$(pulumi stack output OllamaLogGroup); \
+	aws logs tail "$$GROUP" --follow --region "$$REGION"
+
 .PHONY: preview
 preview: ## Preview the stack
 	pulumi preview
+
+.PHONY: test
+test: ## Run unit and shell-rendering tests
+	uv run python -m unittest discover -s tests -v
 
 .PHONY: tunnel
 tunnel: ## Open SSH tunnel to Ollama on localhost:11434
@@ -47,3 +61,7 @@ tunnel: ## Open SSH tunnel to Ollama on localhost:11434
 .PHONY: up
 up: ## Deploy the stack
 	pulumi up --yes
+
+.PHONY: verify
+verify: ## Wait for Ollama and configured models to become ready
+	uv run python scripts/verify.py
