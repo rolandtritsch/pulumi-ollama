@@ -48,6 +48,15 @@ logs-ollama: ## Follow Ollama logs in CloudWatch
 preview: ## Preview the stack
 	pulumi preview
 
+.PHONY: run-codex
+run-codex: ## Run Codex against Ollama on the stack Elastic IP
+	@EIP=$$(pulumi stack output eipPublicIp); \
+	codex \
+		-c 'model_provider="remote_ollama"' \
+		-c 'model_providers.remote_ollama.name="Remote Ollama"' \
+		-c "model_providers.remote_ollama.base_url=\"http://$$EIP:11434/v1\"" \
+		--model $(OLLAMA_MODEL)
+
 .PHONY: test
 test: ## Run unit and shell-rendering tests
 	uv run python -m unittest discover -s tests -v
