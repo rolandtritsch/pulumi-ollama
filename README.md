@@ -207,6 +207,23 @@ curl "http://${EIP}:11434/api/generate" \
   -d '{"model":"qwen2.5-coder:0.5b","prompt":"Why is the sky blue?","stream":false}'
 ```
 
+Run Codex against Ollama at the stack's Elastic IP:
+
+```bash
+make run-codex
+```
+
+The target uses `qwen2.5-coder:0.5b` by default. Select another installed model
+with `OLLAMA_MODEL`:
+
+```bash
+make run-codex OLLAMA_MODEL=qwen3-coder:30b
+```
+
+`run-codex` creates an invocation-scoped Codex model provider, so it does not
+modify `~/.codex/config.toml`. It connects directly over unauthenticated HTTP;
+the machine running Codex must be in `allowed_cidrs`.
+
 Or open an SSH tunnel in one terminal and use localhost from another:
 
 ```bash
