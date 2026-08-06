@@ -21,6 +21,7 @@ models = parse_models(cfg.get("models"))
 
 instance_type_raw = cfg.get("instance_type")
 instance_type = validate_instance_type("g5.2xlarge" if instance_type_raw is None else instance_type_raw)
+availability_zone = cfg.get("availability_zone")
 
 root_volume_size_raw = cfg.get_int("root_volume_size")
 root_volume_size = positive_int(

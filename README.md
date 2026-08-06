@@ -54,6 +54,7 @@ Optional values and their defaults are:
 ```bash
 pulumi config set models "qwen2.5-coder:0.5b"
 pulumi config set instance_type g5.2xlarge
+pulumi config set availability_zone eu-west-1a
 pulumi config set root_volume_size 200
 pulumi config set model_volume_size 500
 pulumi config set log_retention_days 30

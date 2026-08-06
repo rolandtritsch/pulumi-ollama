@@ -1,4 +1,7 @@
+import pulumi
 import pulumi_aws as aws
+
+from . import config
 
 # Create a new VPC
 vpc = aws.ec2.Vpc("ollama-vpc",
@@ -18,8 +21,10 @@ internet_gateway = aws.ec2.InternetGateway("ollama-internetGateway",
 subnet = aws.ec2.Subnet("ollama-subnet",
     vpc_id=vpc.id,
     cidr_block="10.0.1.0/24",
+    availability_zone=config.availability_zone,
     map_public_ip_on_launch=True,
     tags={"Name": "ollama-subnet"},
+    opts=pulumi.ResourceOptions(delete_before_replace=True),
 )
 
 vpc_dns_resolver_cidr = "10.0.0.2/32"

@@ -75,8 +75,9 @@ pulumi config set models "qwen2.5-coder:0.5b"
 ```
 
 The current AMI is resolved dynamically from the latest AWS Deep Learning Base
-OSS NVIDIA Driver GPU AMI for Ubuntu 22.04. The instance type, volume sizes, and
-CloudWatch retention are Pulumi settings with documented defaults.
+OSS NVIDIA Driver GPU AMI for Ubuntu 22.04. The instance type, optional
+availability zone, volume sizes, and CloudWatch retention are Pulumi settings
+with documented defaults.
 
 ## Verification
 
