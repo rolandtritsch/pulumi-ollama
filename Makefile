@@ -1,5 +1,5 @@
 SSH_KEY ?= ~/.ssh/ollama-key
-OLLAMA_MODEL ?= llama3.2:latest
+OLLAMA_MODEL ?= qwen2.5-coder:0.5b
 
 .PHONY: bash
 bash: ## SSH into the instance
@@ -34,9 +34,32 @@ ollama-list: ## List the available ollama models
 ollama-run: ## Run an ollama model interactively
 	ollama run $(OLLAMA_MODEL)
 
+.PHONY: logs-bootstrap
+logs-bootstrap: ## Follow bootstrap logs in CloudWatch
+	@REGION=$$(pulumi config get aws:region); GROUP=$$(pulumi stack output BootstrapLogGroup); \
+	aws logs tail "$$GROUP" --follow --region "$$REGION"
+
+.PHONY: logs-ollama
+logs-ollama: ## Follow Ollama logs in CloudWatch
+	@REGION=$$(pulumi config get aws:region); GROUP=$$(pulumi stack output OllamaLogGroup); \
+	aws logs tail "$$GROUP" --follow --region "$$REGION"
+
 .PHONY: preview
 preview: ## Preview the stack
 	pulumi preview
+
+.PHONY: run-codex
+run-codex: ## Run Codex against Ollama on the stack Elastic IP
+	@EIP=$$(pulumi stack output eipPublicIp); \
+	codex \
+		-c 'model_provider="remote_ollama"' \
+		-c 'model_providers.remote_ollama.name="Remote Ollama"' \
+		-c "model_providers.remote_ollama.base_url=\"http://$$EIP:11434/v1\"" \
+		--model $(OLLAMA_MODEL)
+
+.PHONY: test
+test: ## Run unit and shell-rendering tests
+	uv run python -m unittest discover -s tests -v
 
 .PHONY: tunnel
 tunnel: ## Open SSH tunnel to Ollama on localhost:11434
@@ -47,3 +70,7 @@ tunnel: ## Open SSH tunnel to Ollama on localhost:11434
 .PHONY: up
 up: ## Deploy the stack
 	pulumi up --yes
+
+.PHONY: verify
+verify: ## Wait for Ollama and configured models to become ready
+	uv run python scripts/verify.py
