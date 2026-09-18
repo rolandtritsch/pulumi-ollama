@@ -100,6 +100,15 @@ encrypted EBS volumes, EC2 instance, EIP, least-privilege IAM profile, four log
 groups, and CloudWatch dashboard. DNS exists only when both DNS settings are
 configured.
 
+The `[build-system]` table in `pyproject.toml` is required: Pulumi's Python
+runtime (with `toolchain: uv`) invokes the venv's interpreter directly rather
+than through `uv run`, so it does not add the project root to `sys.path`.
+Without `[build-system]`, `uv sync` treats this as a non-buildable project and
+never installs `src` into the venv, so `from src import compute` fails with
+`ModuleNotFoundError` only when run through `pulumi preview`/`pulumi up` —
+plain `uv run python ollama.py` will not reproduce it, since `uv run` does add
+the project root.
+
 For end-to-end verification:
 
 ```bash
